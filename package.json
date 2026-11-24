@@ -8,5 +8,5 @@
   "bin": { "claude-ab": "claude-ab.cjs" },
   "engines": { "node": ">=20" },
   "files": ["claude-ab.cjs", "credential.ps1", "README.md", "LICENSE"],
-  "scripts": { "test": "node --test test/*.test.cjs" }
+  "scripts": { "test": "node --test" }
 }
