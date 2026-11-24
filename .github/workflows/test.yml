@@ -1,0 +1,41 @@
+name: Test
+on: [push, pull_request, workflow_dispatch]
+permissions:
+  contents: read
+jobs:
+  test:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        node: [20, 22]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+      - run: npm test
+      - run: npm pack --dry-run
+      - name: Install and smoke-test the packaged command
+        shell: pwsh
+        run: |
+          $archive = npm pack --silent --ignore-scripts
+          if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }
+          npm install --global $archive --ignore-scripts --no-audit --no-fund
+          if ($LASTEXITCODE -ne 0) { throw 'Installation failed' }
+          claude-ab --ab-help
+          if ($LASTEXITCODE -ne 0) { throw 'Launcher failed' }
+          claude-ab --ab-models
+          if ($LASTEXITCODE -ne 0) { throw 'Model listing failed' }
+      - name: Check Unix installer syntax
+        if: runner.os != 'Windows'
+        run: sh -n install.sh
+      - name: Check PowerShell syntax
+        shell: pwsh
+        run: |
+          foreach ($file in @('install.ps1', 'credential.ps1')) {
+            $errors = $null
+            $null = [Management.Automation.Language.Parser]::ParseFile((Join-Path $PWD $file), [ref]$null, [ref]$errors)
+            if ($errors) { throw $errors }
+          }
